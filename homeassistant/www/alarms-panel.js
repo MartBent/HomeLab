@@ -3,12 +3,13 @@
  *
  * A bespoke "Alarms" screen (sidebar route /alarms), wired to the live entities
  * and inheriting the active HA theme (colour is owned by the theme — this file
- * only reads HA CSS variables). Reproduces the approved mockup: clock hero,
- * "next alarm" summary, the alarm slots (first 3 shown, "add" reveals more up to
- * 8), and Snooze/Dismiss that step forward while ringing.
+ * only reads HA CSS variables). Slim top bar with a menu button (raw custom
+ * panels get no HA toolbar, so we provide one), clock hero, "next alarm"
+ * summary, alarm slots (first 3 always shown; "Add" reveals more up to 8; extra
+ * slots can be deleted), and Snooze/Dismiss that step forward while ringing.
+ * Times are 24-hour.
  *
  * Deploy: copy to <config>/www/alarms-panel.js and register in configuration.yaml:
- *
  *   panel_custom:
  *     - name: sac-alarms-panel
  *       sidebar_title: Alarms
@@ -20,7 +21,7 @@
  */
 
 const MAX_SLOTS = 8;
-const DEFAULT_SHOWN = 3;
+const BASE_SLOTS = 3;       // always visible; toggled off, never deleted
 const DOMAIN = "smart_alarm_clock";
 
 const styles = `
@@ -33,34 +34,37 @@ const styles = `
     --bg: var(--primary-background-color, #1b1815);
     --accent: var(--accent-color, #c08a54);
     --on-accent: var(--text-primary-color, #1b1815);
+    --header-bg: var(--app-header-background-color, var(--surface));
+    --header-fg: var(--app-header-text-color, var(--ink));
     --glow: color-mix(in srgb, var(--accent) 15%, transparent);
     --glow-strong: color-mix(in srgb, var(--accent) 28%, transparent);
     --radius: 4px;
     --font-time: ui-monospace, "SF Mono", "JetBrains Mono", "Roboto Mono", monospace;
-    display: block;
-    min-height: 100%;
-    background: var(--bg);
-    color: var(--ink);
+    display: block; min-height: 100%; background: var(--bg); color: var(--ink);
     font-family: var(--paper-font-body1_-_font-family, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
   }
   * { box-sizing: border-box; }
 
-  .panel {
-    width: 100%; max-width: 440px; margin: 0 auto;
-    padding: 26px 18px 48px;
-    display: flex; flex-direction: column; gap: 22px;
+  /* top bar — raw panels get no HA toolbar, so provide the menu button */
+  .topbar {
+    position: sticky; top: 0; z-index: 2;
+    height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 4px;
+    background: var(--header-bg); color: var(--header-fg);
+    border-bottom: 1px solid var(--line);
   }
+  .menu { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; background: transparent; color: var(--header-fg); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .menu:hover { background: color-mix(in srgb, var(--header-fg) 10%, transparent); }
+  .menu:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .menu svg { width: 24px; height: 24px; fill: currentColor; }
+  .topbar .title { font-size: 1.1rem; font-weight: 500; }
+
+  .panel { width: 100%; max-width: 440px; margin: 0 auto; padding: 22px 18px 48px; display: flex; flex-direction: column; gap: 22px; }
 
   header { display: flex; flex-direction: column; gap: 10px; }
   .eyebrow { margin: 0; font-size: .68rem; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); }
-  .clock {
-    font-family: var(--font-time); font-variant-numeric: tabular-nums;
-    font-size: clamp(3rem, 15vw, 3.9rem); font-weight: 500; line-height: 1;
-    display: flex; align-items: baseline; gap: .3em;
-  }
+  .clock { font-family: var(--font-time); font-variant-numeric: tabular-nums; font-size: clamp(3rem, 15vw, 3.9rem); font-weight: 500; line-height: 1; display: flex; align-items: baseline; gap: .3em; }
   .clock .sec { font-size: .34em; color: var(--muted); }
-  :host([data-phase="armed"]) .clock,
-  :host([data-phase="ringing"]) .clock { color: var(--accent); }
+  :host([data-phase="armed"]) .clock, :host([data-phase="ringing"]) .clock { color: var(--accent); }
   @media (prefers-reduced-motion: no-preference) {
     :host([data-phase="ringing"]) .clock { animation: breathe 2s ease-in-out infinite; }
     @keyframes breathe { 0%,100% { opacity: 1 } 50% { opacity: .62 } }
@@ -79,8 +83,8 @@ const styles = `
 
   .slots { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
   .slot {
-    position: relative; display: grid; grid-template-columns: auto 1fr auto;
-    align-items: center; column-gap: 14px; padding: 13px 14px 13px 15px;
+    position: relative; display: grid; grid-template-columns: auto minmax(0,1fr) auto auto;
+    align-items: center; column-gap: 12px; padding: 13px 12px 13px 15px;
     background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius);
     overflow: hidden; transition: border-color .18s ease;
   }
@@ -91,14 +95,18 @@ const styles = `
 
   .idx { font-family: var(--font-time); font-size: .74rem; color: var(--muted); font-variant-numeric: tabular-nums; }
   .slot.on .idx { color: var(--accent); }
+
   .body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .time {
     font-family: var(--font-time); font-variant-numeric: tabular-nums;
-    font-size: 1.6rem; font-weight: 500; line-height: 1.05; color: var(--muted);
-    background: transparent; border: 0; padding: 0; width: 5.4ch; color-scheme: dark light;
+    font-size: 1.6rem; font-weight: 500; line-height: 1.1; color: var(--muted);
+    background: transparent; border: 0; padding: 0; margin: 0;
+    width: 100%; min-width: 0; color-scheme: dark light;
   }
   .slot.on .time { color: var(--ink); }
-  .time::-webkit-calendar-picker-indicator { opacity: .35; filter: none; }
+  .time::-webkit-calendar-picker-indicator { opacity: .4; margin-left: 4px; cursor: pointer; }
+  .time::-webkit-inner-spin-button { display: none; }
+  .time::-webkit-datetime-edit { padding: 0; }
   .time:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .sub { font-size: .76rem; color: var(--muted); }
   .slot.on .sub { color: var(--accent); }
@@ -109,6 +117,17 @@ const styles = `
   .tog:checked { background: var(--ink); border-color: var(--ink); }
   .tog:checked::after { transform: translateX(18px); }
   .tog:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .del {
+    width: 26px; height: 26px; border-radius: 50%; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent; color: var(--muted);
+    font: inherit; font-size: 1rem; line-height: 1; cursor: pointer; padding: 0;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .del:hover { color: var(--ink); border-color: var(--line); }
+  .del:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .del[data-hidden] { visibility: hidden; }   /* reserve the column on base slots */
 
   .add { display: flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: .82rem; color: var(--muted); background: transparent; border: 1px dashed var(--line); border-radius: var(--radius); padding: 11px; cursor: pointer; margin-top: 8px; transition: color .15s ease, border-color .15s ease; }
   .add:hover { color: var(--ink); border-color: var(--muted); }
@@ -129,27 +148,32 @@ class SacAlarmsPanel extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._built = false;
-    this._shown = Number(localStorage.getItem("sac_shown")) || DEFAULT_SHOWN;
+    this._renderedKey = "";
+    try { this._revealed = new Set(JSON.parse(localStorage.getItem("sac_revealed") || "[]")); }
+    catch (e) { this._revealed = new Set(); }
   }
 
   set hass(hass) { this._hass = hass; this._render(); }
   set panel(_) {}
   set narrow(_) {}
-
   connectedCallback() { this._build(); this._render(); }
+
+  _saveRevealed() { localStorage.setItem("sac_revealed", JSON.stringify([...this._revealed])); }
 
   _build() {
     if (this._built) return;
-    const root = this.shadowRoot;
-    root.innerHTML = `<style>${styles}</style>
+    this.shadowRoot.innerHTML = `<style>${styles}</style>
+      <div class="topbar">
+        <button class="menu" type="button" aria-label="Open menu">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+        </button>
+        <span class="title">Alarms</span>
+      </div>
       <div class="panel">
         <header>
           <p class="eyebrow">Smart Alarm Clock</p>
           <div class="clock"><span class="hh">--:--</span><span class="sec"></span></div>
-          <div class="statusline">
-            <span class="pill">—</span>
-            <span class="next"></span>
-          </div>
+          <div class="statusline"><span class="pill">—</span><span class="next"></span></div>
         </header>
         <section>
           <div class="sec-head"><h2>Alarms</h2><span class="count"></span></div>
@@ -161,31 +185,48 @@ class SacAlarmsPanel extends HTMLElement {
           <button class="btn dismiss" type="button">Dismiss</button>
         </div>
       </div>`;
-
-    root.querySelector(".add").addEventListener("click", () => {
-      this._shown = Math.min(MAX_SLOTS, this._shown + 1);
-      localStorage.setItem("sac_shown", String(this._shown));
-      this._slotsDirty = true;
-      this._render();
-    });
-    root.querySelector(".snooze").addEventListener("click", () => this._press("snooze"));
-    root.querySelector(".dismiss").addEventListener("click", () => this._press("dismiss"));
+    this.shadowRoot.querySelector(".menu").addEventListener("click", () =>
+      this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true })));
+    this.shadowRoot.querySelector(".add").addEventListener("click", () => this._addSlot());
+    this.shadowRoot.querySelector(".snooze").addEventListener("click", () => this._press("snooze"));
+    this.shadowRoot.querySelector(".dismiss").addEventListener("click", () => this._press("dismiss"));
     this._built = true;
-    this._slotsDirty = true;
   }
 
   _st(id) { return this._hass && this._hass.states[id]; }
   _secs(hms) { if (!hms) return null; const p = String(hms).split(":"); return (+p[0]) * 3600 + (+p[1]) * 60 + (+(p[2] || 0)); }
   _hhmm(hms) { return hms ? String(hms).slice(0, 5) : "--:--"; }
+  _on(n) { const s = this._st(`switch.${DOMAIN}_alarm_${n}`); return s && s.state === "on"; }
+  _press(kind) { this._hass.callService("button", "press", { entity_id: `button.${DOMAIN}_${kind}` }); }
 
-  _press(kind) {
-    this._hass.callService("button", "press", { entity_id: `button.${DOMAIN}_${kind}` });
+  // Which slots to show: the base 3, any the user revealed, and any that are on.
+  _shownSlots() {
+    const set = new Set();
+    for (let n = 1; n <= BASE_SLOTS; n++) set.add(n);
+    this._revealed.forEach((n) => set.add(n));
+    for (let n = 1; n <= MAX_SLOTS; n++) if (this._on(n)) set.add(n);
+    return [...set].filter((n) => n >= 1 && n <= MAX_SLOTS).sort((a, b) => a - b);
   }
 
-  _rebuildSlots() {
+  _addSlot() {
+    const shown = new Set(this._shownSlots());
+    for (let n = 1; n <= MAX_SLOTS; n++) {
+      if (!shown.has(n)) { this._revealed.add(n); this._saveRevealed(); this._render(); return; }
+    }
+  }
+
+  _deleteSlot(n) {
+    if (n <= BASE_SLOTS) return;                 // base slots aren't deletable
+    this._revealed.delete(n);
+    this._saveRevealed();
+    if (this._on(n)) this._hass.callService("switch", "turn_off", { entity_id: `switch.${DOMAIN}_alarm_${n}` });
+    this._render();
+  }
+
+  _rebuildSlots(shown) {
     const wrap = this.shadowRoot.querySelector(".slots");
     wrap.innerHTML = "";
-    for (let n = 1; n <= this._shown; n++) {
+    shown.forEach((n) => {
       const li = document.createElement("div");
       li.className = "slot";
       li.dataset.n = n;
@@ -195,29 +236,26 @@ class SacAlarmsPanel extends HTMLElement {
           <input class="time" type="time" step="60" aria-label="Alarm ${n} time">
           <span class="sub"></span>
         </span>
-        <input class="tog" type="checkbox" aria-label="Alarm ${n} enabled">`;
-      const tog = li.querySelector(".tog");
-      tog.addEventListener("change", () => {
-        this._hass.callService("switch", tog.checked ? "turn_on" : "turn_off",
-          { entity_id: `switch.${DOMAIN}_alarm_${n}` });
+        <input class="tog" type="checkbox" aria-label="Alarm ${n} enabled">
+        <button class="del" type="button" title="Delete alarm ${n}" aria-label="Delete alarm ${n}"${n <= BASE_SLOTS ? " data-hidden" : ""}>✕</button>`;
+      li.querySelector(".tog").addEventListener("change", (e) => {
+        this._hass.callService("switch", e.target.checked ? "turn_on" : "turn_off", { entity_id: `switch.${DOMAIN}_alarm_${n}` });
       });
-      const time = li.querySelector(".time");
-      time.addEventListener("change", () => {
-        if (!time.value) return;
-        this._hass.callService("time", "set_value",
-          { entity_id: `time.${DOMAIN}_alarm_${n}_time`, time: time.value + ":00" });
+      li.querySelector(".time").addEventListener("change", (e) => {
+        if (e.target.value) this._hass.callService("time", "set_value", { entity_id: `time.${DOMAIN}_alarm_${n}_time`, time: e.target.value + ":00" });
       });
+      li.querySelector(".del").addEventListener("click", () => this._deleteSlot(n));
       wrap.appendChild(li);
-    }
-    this._slotsDirty = false;
+    });
+    this._renderedKey = shown.join(",");
   }
 
   _render() {
     if (!this._built || !this._hass) return;
-    if (this._slotsDirty) this._rebuildSlots();
+    const shown = this._shownSlots();
+    if (shown.join(",") !== this._renderedKey) this._rebuildSlots(shown);
     const root = this.shadowRoot;
 
-    // Clock + phase
     const clock = this._st(`sensor.${DOMAIN}_time`);
     const phaseSt = this._st(`sensor.${DOMAIN}_phase`);
     const phase = phaseSt ? phaseSt.state : "idle";
@@ -227,53 +265,41 @@ class SacAlarmsPanel extends HTMLElement {
     this.setAttribute("data-phase", phase);
     root.querySelector(".pill").textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
 
-    // Next alarm + count, across all 8 slots
     const nowSecs = this._secs(nowHms) ?? 0;
     let onCount = 0, best = null;
     for (let n = 1; n <= MAX_SLOTS; n++) {
-      const sw = this._st(`switch.${DOMAIN}_alarm_${n}`);
-      const tm = this._st(`time.${DOMAIN}_alarm_${n}_time`);
-      if (sw && sw.state === "on") {
+      if (this._on(n)) {
         onCount++;
+        const tm = this._st(`time.${DOMAIN}_alarm_${n}_time`);
         const s = this._secs(tm && tm.state);
-        if (s != null) {
-          const delta = (s - nowSecs + 86400) % 86400;
-          if (best === null || delta < best.delta) best = { delta, hms: tm.state, n };
-        }
+        if (s != null) { const d = (s - nowSecs + 86400) % 86400; if (best === null || d < best.d) best = { d, hms: tm.state, n }; }
       }
     }
     root.querySelector(".count").textContent = onCount + " on";
     const next = root.querySelector(".next");
-    if (phase === "idle" || !best) {
-      next.innerHTML = "No alarms set";
-    } else {
-      next.innerHTML = `Next <b>${this._hhmm(best.hms)}</b> · ${this._rel(best.delta)}`;
-    }
+    next.innerHTML = (phase === "idle" || !best) ? "No alarms set" : `Next <b>${this._hhmm(best.hms)}</b> · ${this._rel(best.d)}`;
 
-    // Slot rows
     const ringingN = (phase === "ringing" && best) ? best.n : -1;
     root.querySelectorAll(".slot").forEach((li) => {
       const n = +li.dataset.n;
-      const sw = this._st(`switch.${DOMAIN}_alarm_${n}`);
       const tm = this._st(`time.${DOMAIN}_alarm_${n}_time`);
-      const on = sw && sw.state === "on";
+      const on = this._on(n);
       li.classList.toggle("on", !!on);
       li.classList.toggle("ringing", n === ringingN);
       const tog = li.querySelector(".tog");
-      if (document.activeElement !== tog) tog.checked = !!on;
+      if (this.shadowRoot.activeElement !== tog) tog.checked = !!on;
       const time = li.querySelector(".time");
       const val = this._hhmm(tm && tm.state);
-      if (document.activeElement !== time && val !== "--:--") time.value = val;
+      if (this.shadowRoot.activeElement !== time && val !== "--:--") time.value = val;
       const sub = li.querySelector(".sub");
       if (n === ringingN) sub.textContent = "Ringing now";
       else if (on) { const s = this._secs(tm && tm.state); sub.textContent = s != null ? this._rel((s - nowSecs + 86400) % 86400) : "On"; }
       else sub.textContent = "Off";
     });
 
-    // Add affordance
     const add = root.querySelector(".add");
-    add.hidden = this._shown >= MAX_SLOTS;
-    add.querySelector(".free").textContent = "· " + (MAX_SLOTS - this._shown) + " slots free";
+    add.hidden = shown.length >= MAX_SLOTS;
+    add.querySelector(".free").textContent = "· " + (MAX_SLOTS - shown.length) + " slots free";
   }
 
   _rel(delta) {
