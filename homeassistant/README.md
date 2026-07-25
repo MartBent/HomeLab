@@ -13,8 +13,9 @@ Version-controlled sources for the Home Assistant instance running on the NAS
 | Path | Deploy to (on NAS, under `ha/`) | What it is |
 |---|---|---|
 | `themes/mart.yaml` | `themes/mart.yaml` | **"Mart's Theme"** — household-wide *Japandi, technical* theme (beige + oak), matched light/dark modes. Whole-environment (sidebar, dialogs, inputs), not one dashboard. Pure CSS-variable overrides — no HACS. |
-| `dashboards/alarms.yaml` | `dashboards/alarms.yaml` | The **Alarms** dashboard (YAML mode, `sections` layout, built-in cards). Registered in `configuration.yaml` under `lovelace.dashboards`. |
-| `dashboards/alarms-card.yaml` | — | Paste-in card variant of the same view (for adding to an existing dashboard). |
+| `www/alarms-panel.js` | `www/alarms-panel.js` | **The Alarms screen** — a bespoke custom panel (sidebar route `/alarms`), a single web component wired to the live entities and inheriting the active theme. This is the primary alarms UI. Registered in `configuration.yaml` under `panel_custom`. |
+| `dashboards/alarms.yaml` | `dashboards/alarms.yaml` | Older stock-card **Alarms** dashboard (YAML mode, `sections`). Superseded by the panel above; kept as a no-JS fallback. |
+| `dashboards/alarms-card.yaml` | — | Paste-in card variant of the stock-card view (for adding to an existing dashboard). |
 | `automations/nightly-alarm-reminder.yaml` | append to `automations.yaml` | Optional 21:00 "set an alarm?" actionable notification + its button handler. |
 
 The alarm entities themselves come from the **smart_alarm_clock** custom
@@ -48,6 +49,28 @@ with the firmware, not here.
    ```
 4. Restart HA (`docker restart homeassistant`). Every user on *"Backend-selected
    theme"* inherits it, in **Auto** light/dark. Per-user picks still override.
+
+## Alarms panel — install
+
+1. Copy `www/alarms-panel.js` → `ha/www/alarms-panel.js` (served by HA at `/local/alarms-panel.js`).
+2. Register it in `configuration.yaml`:
+   ```yaml
+   panel_custom:
+     - name: sac-alarms-panel      # must match customElements.define() in the JS
+       sidebar_title: Alarms
+       sidebar_icon: mdi:alarm
+       url_path: alarms
+       module_url: /local/alarms-panel.js
+       embed_iframe: false
+       require_admin: false
+   ```
+3. Restart HA. It appears in the sidebar as **Alarms**.
+
+It reads the `smart_alarm_clock` entities (`sensor.*_phase`, `sensor.*_time`,
+`switch.*_alarm_1..8`, `time.*_alarm_1_time..8`, `button.*_snooze|_dismiss`) and
+writes via `switch.turn_on/off`, `time.set_value`, `button.press`. Colour comes
+entirely from the active theme (it reads HA CSS variables); times are 24-hour.
+Shows the first 3 slots, with an "add" affordance up to 8.
 
 ## Deploy notes
 
