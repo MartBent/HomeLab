@@ -1,0 +1,203 @@
+# Mart's Theme — Home Assistant theme  ·  "Japandi, technical"
+# ---------------------------------------------------------------------------
+# The household-wide theme for the whole HA environment (sidebar, dialogs,
+# inputs, cards, feedback colors) — not tied to any single dashboard. Tuned to
+# Mart's home: beige textured walls + warm oak wood-look tile flooring — Japandi
+# (Japanese + Scandinavian warm minimalism). Steered *technical, not organic*:
+# interactive controls are resolved in monochrome ink/stone with hairline
+# borders, a small 4px radius, and flat cards. Oak is the single warm accent —
+# an "active" entity glows warm; the controls themselves stay neutral.
+#
+# Dual-mode: light (beige, daytime) and dark (warm charcoal, night). Selecting
+# "Mart's Theme" in your profile makes it follow HA's Auto/Light/Dark toggle
+# exactly like the built-in themes — no separate day/night themes to pick.
+#
+# Pure CSS-variable overrides — no HACS, no card-mod. Originated with the
+# smart-alarm-clock project; lives here for now.
+#
+# Deploy:
+#   1. Copy to  <config>/themes/mart.yaml   (on the NAS: .../ha/themes/)
+#   2. Ensure configuration.yaml loads the folder:
+#        frontend:
+#          themes: !include_dir_merge_named themes
+#   3. Restart HA:  docker restart homeassistant
+#   4. Profile → Theme → "Mart's Theme", and leave the mode on "Auto".
+#
+# Palette sampled from the home: beige wall, white trim, oak tile, sage band.
+# ---------------------------------------------------------------------------
+
+"Mart's Theme":
+  # ---- structure: shared by both modes (this is the "technical" edge) ---
+  ha-card-border-radius: "4px"
+  ha-card-border-width: "1px"
+  ha-card-box-shadow: "none"
+  label-badge-border-radius: "4px"
+
+  # =====================================================================
+  modes:
+    # ---- LIGHT — beige wall + oak, ink controls -----------------------
+    light:
+      primary-color: "#2B2823"           # sumi ink — technical controls
+      dark-primary-color: "#1C1A16"
+      light-primary-color: "#4A463E"
+      accent-color: "#A87C4F"            # oak — the one warm accent
+
+      primary-background-color: "#E5DCCB" # beige wall
+      secondary-background-color: "#EDE6D9"
+      card-background-color: "#F4EFE6"    # warm off-white
+      ha-card-background: "#F4EFE6"
+      lovelace-background: "#E5DCCB"
+      divider-color: "#CFC5B2"            # hairline
+      ha-card-border-color: "#CFC5B2"
+
+      primary-text-color: "#33302A"       # warm charcoal
+      secondary-text-color: "#8A8172"     # taupe
+      text-primary-color: "#F4EFE6"       # text ON the ink accent
+      disabled-text-color: "#B3A992"
+
+      app-header-background-color: "#F4EFE6"
+      app-header-text-color: "#2B2823"
+      app-header-selection-bar-color: "#A87C4F"
+
+      sidebar-background-color: "#EDE6D9"
+      sidebar-text-color: "#5C544A"
+      sidebar-icon-color: "#8A8172"
+      sidebar-selected-text-color: "#2B2823"
+      sidebar-selected-icon-color: "#A87C4F"
+
+      state-icon-color: "#8A8172"
+      state-icon-active-color: "#A87C4F"  # active = warm oak glow
+      paper-item-icon-color: "#8A8172"
+      paper-item-icon-active-color: "#A87C4F"
+      state-active-color: "#A87C4F"
+      state-switch-active-color: "#A87C4F"
+      state-binary-sensor-active-color: "#A87C4F"
+
+      switch-checked-color: "#2B2823"      # controls = monochrome ink
+      switch-checked-button-color: "#F4EFE6"
+      switch-checked-track-color: "#2B2823"
+      switch-unchecked-button-color: "#F4EFE6"
+      switch-unchecked-track-color: "#CFC5B2"
+      paper-toggle-button-checked-button-color: "#F4EFE6"
+      paper-toggle-button-checked-bar-color: "#2B2823"
+      paper-toggle-button-unchecked-button-color: "#F4EFE6"
+      paper-toggle-button-unchecked-bar-color: "#CFC5B2"
+
+      input-fill-color: "#EDE6D9"
+      input-ink-color: "#33302A"
+      input-label-ink-color: "#8A8172"
+      input-idle-line-color: "#CFC5B2"
+      input-hover-line-color: "#8A8172"
+      input-focused-line-color: "#2B2823"
+      input-disabled-fill-color: "#E5DCCB"
+      mdc-text-field-fill-color: "#EDE6D9"
+      mdc-text-field-ink-color: "#33302A"
+
+      mdc-theme-primary: "#2B2823"
+      mdc-theme-secondary: "#A87C4F"
+      mdc-theme-surface: "#F4EFE6"
+      mdc-theme-on-primary: "#F4EFE6"
+      mdc-theme-on-surface: "#33302A"
+
+      slider-color: "#A87C4F"
+      slider-track-color: "#CFC5B2"
+      ha-slider-color: "#A87C4F"
+
+      # feedback — muted, on-palette (terracotta / ochre / olive / slate)
+      error-color: "#B4553F"
+      warning-color: "#C08A3E"
+      success-color: "#7E8B5C"
+      info-color: "#6E8592"
+
+      markdown-code-background-color: "#EDE6D9"
+      code-editor-background-color: "#EDE6D9"
+      table-row-background-color: "#F4EFE6"
+      table-row-alternative-background-color: "#EDE6D9"
+
+      rgb-primary-color: "43, 40, 35"
+      rgb-accent-color: "168, 124, 79"
+      rgb-primary-text-color: "51, 48, 42"
+      rgb-card-background-color: "244, 239, 230"
+
+    # ---- DARK — warm charcoal + oak, stone controls -------------------
+    dark:
+      primary-color: "#D8CDB8"           # warm stone — technical controls (inverted)
+      dark-primary-color: "#B3A88F"
+      light-primary-color: "#E8E0D2"
+      accent-color: "#C08A54"            # oak, brightened for dark
+
+      primary-background-color: "#1B1815" # warm near-black (not pure black)
+      secondary-background-color: "#242019"
+      card-background-color: "#26221D"
+      ha-card-background: "#26221D"
+      lovelace-background: "#1B1815"
+      divider-color: "#3A352E"
+      ha-card-border-color: "#3A352E"
+
+      primary-text-color: "#E8E0D2"       # warm off-white
+      secondary-text-color: "#9C9284"
+      text-primary-color: "#1B1815"       # text ON the stone accent
+      disabled-text-color: "#615A4F"
+
+      app-header-background-color: "#242019"
+      app-header-text-color: "#E8E0D2"
+      app-header-selection-bar-color: "#C08A54"
+
+      sidebar-background-color: "#211D18"
+      sidebar-text-color: "#B8AF9E"
+      sidebar-icon-color: "#9C9284"
+      sidebar-selected-text-color: "#E8E0D2"
+      sidebar-selected-icon-color: "#C08A54"
+
+      state-icon-color: "#9C9284"
+      state-icon-active-color: "#C08A54"
+      paper-item-icon-color: "#9C9284"
+      paper-item-icon-active-color: "#C08A54"
+      state-active-color: "#C08A54"
+      state-switch-active-color: "#C08A54"
+      state-binary-sensor-active-color: "#C08A54"
+
+      switch-checked-color: "#D8CDB8"
+      switch-checked-button-color: "#26221D"
+      switch-checked-track-color: "#D8CDB8"
+      switch-unchecked-button-color: "#E8E0D2"
+      switch-unchecked-track-color: "#3A352E"
+      paper-toggle-button-checked-button-color: "#26221D"
+      paper-toggle-button-checked-bar-color: "#D8CDB8"
+      paper-toggle-button-unchecked-button-color: "#E8E0D2"
+      paper-toggle-button-unchecked-bar-color: "#3A352E"
+
+      input-fill-color: "#211D18"
+      input-ink-color: "#E8E0D2"
+      input-label-ink-color: "#9C9284"
+      input-idle-line-color: "#3A352E"
+      input-hover-line-color: "#9C9284"
+      input-focused-line-color: "#D8CDB8"
+      input-disabled-fill-color: "#1B1815"
+      mdc-text-field-fill-color: "#211D18"
+      mdc-text-field-ink-color: "#E8E0D2"
+
+      mdc-theme-primary: "#D8CDB8"
+      mdc-theme-secondary: "#C08A54"
+      mdc-theme-surface: "#26221D"
+      mdc-theme-on-primary: "#1B1815"
+      mdc-theme-on-surface: "#E8E0D2"
+
+      slider-color: "#C08A54"
+      slider-track-color: "#3A352E"
+      ha-slider-color: "#C08A54"
+
+      error-color: "#CF6B52"
+      warning-color: "#D19A4E"
+      success-color: "#95A06C"
+      info-color: "#7F97A4"
+
+      markdown-code-background-color: "#211D18"
+      code-editor-background-color: "#211D18"
+      table-row-background-color: "#26221D"
+      table-row-alternative-background-color: "#211D18"
+
+      rgb-primary-color: "216, 205, 184"
+      rgb-accent-color: "192, 138, 84"
+      rgb-primary-text-color: "232, 224, 210"
+      rgb-card-background-color: "38, 34, 29"
